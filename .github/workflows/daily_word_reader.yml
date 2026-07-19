@@ -1,0 +1,45 @@
+name: 每日单词阅读生成
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    inputs:
+      difficulty_level:
+        description: '难度等级：1=基础，2=标准（默认），3=强化'
+        required: false
+        default: '2'
+        type: string
+
+jobs:
+  generate-and-send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 配置Python环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 安装系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 fonts-noto-cjk
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 执行生成并发送邮件
+        env:
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          USERS: ${{ secrets.USERS }}
+          MAX_WORKERS: ${{ secrets.MAX_WORKERS || '3' }}
+        run: python main.py
